@@ -17,7 +17,9 @@ from qgis.core import (QgsProcessing,
                        QgsVectorLayer,
                        QgsVectorDataProvider,
                        QgsField,
-                       QgsRasterLayer,                       
+                       QgsRasterLayer,
+                       QgsProcessingFeatureSourceDefinition,
+                       QgsFeatureRequest,
                        edit
                        )
 from qgis.analysis import QgsRasterCalculator, QgsRasterCalculatorEntry
@@ -155,9 +157,24 @@ class calcIUCNRichness(QgsProcessingAlgorithm):
             return {}
 
         # Clip IUCN down (iucn_clipped)
+
+        inputFlags = QgsProcessingFeatureSourceDefinition(
+            IUCN_SHP.dataProvider().dataSourceUri(),
+            selectedFeaturesOnly=False,
+            featureLimit=-1,
+            flags=QgsProcessingFeatureSourceDefinition.FlagOverrideDefaultGeometryCheck,
+            geometryCheck=QgsFeatureRequest.GeometrySkipInvalid)
+
+        samFlags = QgsProcessingFeatureSourceDefinition(
+            sam_proj,
+            selectedFeaturesOnly=False,
+            featureLimit=-1,
+            flags=QgsProcessingFeatureSourceDefinition.FlagOverrideDefaultGeometryCheck,
+            geometryCheck=QgsFeatureRequest.GeometrySkipInvalid)
+
         alg_params = {
-            'INPUT': IUCN_SHP,
-            'OVERLAY': sam_proj,
+            'INPUT': inputFlags,
+            'OVERLAY': samFlags,
             'OUTPUT': iucn_clipped
         }
 
