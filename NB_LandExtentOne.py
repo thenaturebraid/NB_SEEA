@@ -20,6 +20,7 @@ class CalcLandExtentOneFile(QgsProcessingAlgorithm):
     INPUT = 'LC_SHP'
     LC_OPENING = 'LC_OPENING'
     LC_CLOSING = 'LC_CLOSING'
+    LC_NAME = 'LC_NAME'
     OUTPUT = 'LC_ACCOUNTS'
 
     def tr(self, string):
@@ -70,6 +71,16 @@ class CalcLandExtentOneFile(QgsProcessingAlgorithm):
             self.INPUT
             )
         )
+
+        self.addParameter(
+            QgsProcessingParameterField(
+            self.LC_NAME,
+            self.tr('Field containing land cover class name from opening dataset'),
+            '',
+            self.INPUT,
+            optional=True
+            )
+        )
         
         self.addParameter(
             QgsProcessingParameterVectorDestination(
@@ -84,11 +95,12 @@ class CalcLandExtentOneFile(QgsProcessingAlgorithm):
         LC_OPENING = self.parameterAsString(parameters, self.LC_OPENING, context)
         LC_CLOSING = self.parameterAsString(parameters, self.LC_CLOSING, context)
         LC_ACCOUNTS = self.parameterAsOutputLayer(parameters, self.OUTPUT, context)        
-        
+        LC_NAME =  self.parameterAsString(parameters, self.LC_NAME, context)
+
         # Temporary files
         tempFolder = os.path.join(QgsProcessingUtils.tempFolder(), 'calc_lc_one')
         if not os.path.exists(tempFolder):
-            os.mkdir(tempFolder)            
+            os.mkdir(tempFolder)
         openingLC = os.path.join(tempFolder, 'openingLC.shp')
         closingLC = os.path.join(tempFolder, 'closingLC.shp')
 
@@ -144,6 +156,7 @@ class CalcLandExtentOneFile(QgsProcessingAlgorithm):
             'LC_OPENING': LC_OPENING,
             'LC_CLOSING_SHP': closingLC,
             'LC_CLOSING': LC_CLOSING,
+            'LC_NAME': LC_NAME,
             'OUTPUT_LC': LC_ACCOUNTS
         }
         

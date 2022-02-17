@@ -26,6 +26,7 @@ class CalcLandExtentCalc(QgsProcessingAlgorithm):
     LC_OPENING = 'LC_OPENING'
     LC_CLOSING_SHP = 'LC_CLOSING_SHP'
     LC_CLOSING = 'LC_CLOSING'
+    LC_NAME = 'LC_NAME'
     OUTPUT = 'OUTPUT_LC'
 
     def tr(self, string):
@@ -87,6 +88,16 @@ class CalcLandExtentCalc(QgsProcessingAlgorithm):
             self.LC_CLOSING_SHP
             )
         )
+
+        self.addParameter(
+            QgsProcessingParameterField(
+            self.LC_NAME,
+            self.tr('Field containing land cover class name'),
+            '',
+            self.LC_OPENING_SHP,
+            optional=True
+            )
+        )
         
         self.addParameter(
             QgsProcessingParameterVectorDestination(
@@ -101,6 +112,7 @@ class CalcLandExtentCalc(QgsProcessingAlgorithm):
         LC_OPENING = self.parameterAsString(parameters, self.LC_OPENING, context)
         LC_CLOSING_SHP = self.parameterAsVectorLayer(parameters, self.LC_CLOSING_SHP, context)
         LC_CLOSING = self.parameterAsString(parameters, self.LC_CLOSING, context)
+        LC_NAME =  self.parameterAsString(parameters, self.LC_NAME, context)
         OUTPUT_LC = self.parameterAsOutputLayer(parameters, self.OUTPUT, context)        
         
         # Intermediate files
@@ -115,23 +127,32 @@ class CalcLandExtentCalc(QgsProcessingAlgorithm):
         outputs = {}
 
         model_feedback.pushInfo('Checking opening land cover...')
-        openFields = []
-        for field in LC_OPENING_SHP.fields():
-            openFields.append(str(field.name()))
+        
+        # Clean fields of everything except code and name
+        fieldsToKeep = [str(LC_OPENING)]
+        if str(LC_NAME) != '':
+            fieldsToKeep.append(str(LC_NAME))
+        allFields = [field.name() for field in LC_OPENING_SHP.fields()]
+        fieldsToRemove = list(set(allFields) - set(fieldsToKeep))
+
+        idxRemove = []
+        for field in fieldsToRemove:
+            idx = allFields.index(field)
+            idxRemove.append(idx)
 
         caps = LC_OPENING_SHP.dataProvider().capabilities()
 
+        # Clean opening LC of everything except code and name
+        if caps & QgsVectorDataProvider.DeleteAttributes:
+            res = LC_OPENING_SHP.dataProvider().deleteAttributes(idxRemove)
+            LC_OPENING_SHP.updateFields()        
+
         # Make a new field for area
         if caps & QgsVectorDataProvider.AddAttributes:
-            if 'area1_km2' in openFields:
-                model_feedback.pushInfo('area1_km2 field present in soil shapefile')
-                model_feedback.pushInfo('Deleting area1_km2 field...')
-                idx = openFields.index('area1_km2')
-                res = LC_OPENING_SHP.dataProvider().deleteAttributes([idx])
-                
             res = LC_OPENING_SHP.dataProvider().addAttributes([QgsField('area1_km2', QVariant.Double)])
             LC_OPENING_SHP.updateFields()
 
+        # Calculate area
         expContext = QgsExpressionContext()
         expContext.appendScopes(QgsExpressionContextUtils.globalProjectLayerScopes(LC_OPENING_SHP))
         exp1 = QgsExpression('area($geometry) / 1000000')
@@ -143,20 +164,24 @@ class CalcLandExtentCalc(QgsProcessingAlgorithm):
                 LC_OPENING_SHP.updateFeature(f)
 
         model_feedback.pushInfo('Checking closing land cover...')
-        closeFields = []
-        for field in LC_CLOSING_SHP.fields():
-            closeFields.append(str(field.name()))
+        
+        # Clean fields except for code
+        fieldsToKeep = [str(LC_CLOSING)]
+        allFields = [field.name() for field in LC_CLOSING_SHP.fields()]
+        fieldsToRemove = list(set(allFields) - set(fieldsToKeep))
+
+        idxRemove = []
+        for field in fieldsToRemove:
+            idx = allFields.index(field)
+            idxRemove.append(idx)
 
         caps = LC_CLOSING_SHP.dataProvider().capabilities()
-
+        if caps & QgsVectorDataProvider.DeleteAttributes:
+            res = LC_CLOSING_SHP.dataProvider().deleteAttributes(idxRemove)
+            LC_CLOSING_SHP.updateFields()
+        
         # Make a new field for area
         if caps & QgsVectorDataProvider.AddAttributes:
-            if 'area2_km2' in closeFields:
-                model_feedback.pushInfo('area2_km2 field present in soil shapefile')
-                model_feedback.pushInfo('Deleting area2_km2 field...')
-                idx = closeFields.index('area2_km2')
-                res = LC_CLOSING_SHP.dataProvider().deleteAttributes([idx])
-                
             res = LC_CLOSING_SHP.dataProvider().addAttributes([QgsField('area2_km2', QVariant.Double)])
             LC_CLOSING_SHP.updateFields()
 
@@ -226,6 +251,8 @@ class CalcLandExtentCalc(QgsProcessingAlgorithm):
 
         # Clean up the output file
         fieldsToKeep = [str(LC_OPENING), str(LC_CLOSING), 'area1_km2', 'area2_km2', 'AbsDiff', 'RelDiff']
+        if str(LC_NAME) != '':
+            fieldsToKeep.append(str(LC_NAME))
         allFields = [field.name() for field in joinedLCFile.fields()]
         fieldsToRemove = list(set(allFields) - set(fieldsToKeep))
 
