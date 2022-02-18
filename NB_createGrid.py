@@ -172,7 +172,7 @@ class createGrid(QgsProcessingAlgorithm):
 
             # Go through feature class and erase the areas that don't overlap
             samName = SAM.name()
-            areaField = str(samName) + '_area'
+            areaField = str(samName) + '_pc'
 
             overlapFC = QgsVectorLayer(AGG_GRID)
             caps = overlapFC.dataProvider().capabilities()
