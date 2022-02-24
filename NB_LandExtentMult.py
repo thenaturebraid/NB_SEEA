@@ -10,7 +10,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterVectorLayer,
                        QgsProcessingUtils,
                        QgsProcessingParameterField,
-                       QgsProcessingParameterVectorDestination
+                       QgsProcessingParameterVectorDestination,
+                       QgsProcessingParameterFileDestination
                        )
 from qgis import processing
 import os
@@ -22,6 +23,7 @@ class CalcLandExtentMultFiles(QgsProcessingAlgorithm):
     LC_CLOSING_SHP = 'LC_CLOSING_SHP'
     LC_CLOSING = 'LC_CLOSING'
     LC_NAME = 'LC_NAME'
+    OUTPUT_CSV = 'OUTPUT_CSV'
     OUTPUT = 'LC_ACCOUNTS'
 
     def tr(self, string):
@@ -86,8 +88,15 @@ class CalcLandExtentMultFiles(QgsProcessingAlgorithm):
             self.LC_NAME,
             self.tr('Field containing land cover class name from opening dataset'),
             '',
-            self.LC_OPENING_SHP,
-            optional=True
+            self.LC_OPENING_SHP
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterFileDestination(
+            self.OUTPUT_CSV,
+            self.tr('Land cover/extent transition matrix'),
+            'CSV files (*.csv)'
             )
         )
         
@@ -105,6 +114,7 @@ class CalcLandExtentMultFiles(QgsProcessingAlgorithm):
         LC_CLOSING_SHP = self.parameterAsVectorLayer(parameters, self.LC_CLOSING_SHP, context)
         LC_CLOSING = self.parameterAsString(parameters, self.LC_CLOSING, context)
         LC_ACCOUNTS = self.parameterAsOutputLayer(parameters, self.OUTPUT, context)        
+        OUTPUT_CSV = self.parameterAsFileOutput(parameters, self.OUTPUT_CSV, context)
         LC_NAME =  self.parameterAsString(parameters, self.LC_NAME, context)
 
         # Temporary files
@@ -177,6 +187,7 @@ class CalcLandExtentMultFiles(QgsProcessingAlgorithm):
             'LC_CLOSING_SHP': closingLC,
             'LC_CLOSING': LC_CLOSING,
             'LC_NAME': LC_NAME,
+            'OUTPUT_CSV': OUTPUT_CSV,
             'OUTPUT_LC': LC_ACCOUNTS
         }
         
@@ -187,5 +198,6 @@ class CalcLandExtentMultFiles(QgsProcessingAlgorithm):
         )
         
         results[self.OUTPUT] = LC_ACCOUNTS
+        results[self.OUTPUT_CSV] = OUTPUT_CSV
         
         return results
