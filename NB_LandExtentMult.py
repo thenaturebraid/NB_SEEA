@@ -135,7 +135,7 @@ class CalcLandExtentMultFiles(QgsProcessingAlgorithm):
         if openGeo == True:
             raise QgsProcessingException(self.tr("Opening dataset must be in a projected CRS"))
 
-        if openGeo != 0:
+        if openUnits != 0:
             # if it's not in metres
             raise QgsProcessingException(self.tr("Opening dataset map units must be in meters"))
 
